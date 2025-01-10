@@ -30,6 +30,9 @@ The code includes error handling for situations such as checksum errors or when 
 
 Looping and Refreshing:
 The main program continuously reads the sensor data at regular intervals (2 seconds), refreshing the LCD with updated information.
+Output :
+
+![Screenshot 2025-01-10](https://github.com/user-attachments/assets/2b49f97d-2a8c-441f-aff0-7d343a7a4205)
 
 
 
