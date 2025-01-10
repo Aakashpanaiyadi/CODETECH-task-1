@@ -1,20 +1,13 @@
-
 #include <pic.h>
 #define _XTAL_FREQ 8000000
-
-// LCD Pins
 #define RS RB2
 #define EN RB3
 #define D4 RB4
 #define D5 RB5
 #define D6 RB6
 #define D7 RB7
-
-// DHT11 Pin
 #define DHT11_PIN RB1
 #define DHT11_DIR TRISB1
-
-// Function Prototypes
 void Lcd_Init();
 void Lcd_Command(unsigned char);
 void Lcd_Char(unsigned char);
@@ -22,8 +15,6 @@ void Lcd_String(const char*);
 void StartSignal();
 unsigned char CheckResponse();
 unsigned char ReadByte();
-
-// LCD Functions
 void Lcd_Init() {
     TRISB = 0x00; // Configure LCD pins as output
     Lcd_Command(0x02);
@@ -32,7 +23,6 @@ void Lcd_Init() {
     Lcd_Command(0x06);
     Lcd_Command(0x01);
 }
-
 void Lcd_Command(unsigned char cmd) {
     RS = 0;
     PORTB = (PORTB & 0x0F) | (cmd & 0xF0);
@@ -46,7 +36,6 @@ void Lcd_Command(unsigned char cmd) {
     EN = 0;
     __delay_ms(2);
 }
-
 void Lcd_Char(unsigned char data) {
     RS = 1;
     PORTB = (PORTB & 0x0F) | (data & 0xF0);
@@ -65,8 +54,6 @@ void Lcd_String(const char *text) {
     while (*text)
         Lcd_Char(*text++);
 }
-
-// DHT11 Functions
 void StartSignal() {
     DHT11_DIR = 0;
     DHT11_PIN = 0;
