@@ -1,0 +1,149 @@
+
+#include <pic.h>
+#define _XTAL_FREQ 8000000
+
+// LCD Pins
+#define RS RB2
+#define EN RB3
+#define D4 RB4
+#define D5 RB5
+#define D6 RB6
+#define D7 RB7
+
+// DHT11 Pin
+#define DHT11_PIN RB1
+#define DHT11_DIR TRISB1
+
+// Function Prototypes
+void Lcd_Init();
+void Lcd_Command(unsigned char);
+void Lcd_Char(unsigned char);
+void Lcd_String(const char*);
+void StartSignal();
+unsigned char CheckResponse();
+unsigned char ReadByte();
+
+// LCD Functions
+void Lcd_Init() {
+    TRISB = 0x00; // Configure LCD pins as output
+    Lcd_Command(0x02);
+    Lcd_Command(0x28);
+    Lcd_Command(0x0C);
+    Lcd_Command(0x06);
+    Lcd_Command(0x01);
+}
+
+void Lcd_Command(unsigned char cmd) {
+    RS = 0;
+    PORTB = (PORTB & 0x0F) | (cmd & 0xF0);
+    EN = 1;
+    __delay_ms(1);
+    EN = 0;
+    __delay_ms(1);
+    PORTB = (PORTB & 0x0F) | (cmd << 4);
+    EN = 1;
+    __delay_ms(1);
+    EN = 0;
+    __delay_ms(2);
+}
+
+void Lcd_Char(unsigned char data) {
+    RS = 1;
+    PORTB = (PORTB & 0x0F) | (data & 0xF0);
+    EN = 1;
+    __delay_ms(1);
+    EN = 0;
+    __delay_ms(1);
+    PORTB = (PORTB & 0x0F) | (data << 4);
+    EN = 1;
+    __delay_ms(1);
+    EN = 0;
+    __delay_ms(2);
+}
+
+void Lcd_String(const char *text) {
+    while (*text)
+        Lcd_Char(*text++);
+}
+
+// DHT11 Functions
+void StartSignal() {
+    DHT11_DIR = 0;
+    DHT11_PIN = 0;
+    __delay_ms(25);
+    DHT11_PIN = 1;
+    __delay_us(30);
+    DHT11_DIR = 1;
+}
+
+unsigned char CheckResponse() {
+    __delay_us(40);
+    if (!DHT11_PIN) {
+        __delay_us(80);
+        if (DHT11_PIN) {
+            __delay_us(80);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+unsigned char ReadByte() {
+    unsigned char i, data = 0;
+    for (i = 0; i < 8; i++) {
+        while (!DHT11_PIN);
+        __delay_us(40);
+        if (DHT11_PIN) data |= (1 << (7 - i));
+        while (DHT11_PIN);
+    }
+    return data;
+}
+
+// Main Function
+void main() {
+    unsigned char RH_Byte1, RH_Byte2, T_Byte1, T_Byte2, CheckSum;
+    char display[16];
+    
+    Lcd_Init();
+    Lcd_Command(0x01);
+    Lcd_String("DHT11 with PIC16F887A");
+    __delay_ms(2000);
+    Lcd_Command(0x01);
+    
+    while (1) {
+        StartSignal();
+        if (CheckResponse()) {
+            RH_Byte1 = ReadByte();
+            RH_Byte2 = ReadByte();
+            T_Byte1 = ReadByte();
+            T_Byte2 = ReadByte();
+            CheckSum = ReadByte();
+            
+            if (CheckSum == (RH_Byte1 + RH_Byte2 + T_Byte1 + T_Byte2)) {
+                Lcd_Command(0x80);
+                Lcd_String("Humidity: ");
+                Lcd_Char(RH_Byte1 / 10 + '0');
+                Lcd_Char(RH_Byte1 % 10 + '0');
+                Lcd_Char('.');
+                Lcd_Char(RH_Byte2 + '0');
+                Lcd_String("%");
+                
+                Lcd_Command(0xC0);
+                Lcd_String("Temp: ");
+                Lcd_Char(T_Byte1 / 10 + '0');
+                Lcd_Char(T_Byte1 % 10 + '0');
+                Lcd_Char('.');
+                Lcd_Char(T_Byte2 + '0');
+                Lcd_Char(223); // Degree symbol
+                Lcd_Char('C');
+            } else {
+                Lcd_Command(0x80);
+                Lcd_String("Checksum Error");
+            }
+        } else {
+            Lcd_Command(0x80);
+            Lcd_String("No Response!");
+        }
+        __delay_ms(2000);
+    }
+}
